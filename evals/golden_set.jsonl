@@ -1,0 +1,8 @@
+{"id": "kick-1-3", "prompt": "Write a LOOM pattern with just a kick drum hitting on beats 1 and 3 of a 4-beat bar, nothing else.", "check": "kick_on_phases", "params": {"voice": "kick", "phases": [0.0, 0.5]}}
+{"id": "kick-every-beat", "prompt": "Write a LOOM kick drum pattern that hits on every single beat of a 4-beat bar.", "check": "event_count_for_voice", "params": {"voice": "kick", "min_count": 4}}
+{"id": "two-voices", "prompt": "Write a LOOM pattern with a kick and a snare, snare on the off-beats only.", "check": "voice_count", "params": {"min_voices": 2}}
+{"id": "tempo-140", "prompt": "Write a LOOM pattern set to 140 BPM with a simple four-on-the-floor kick.", "check": "bpm_equals", "params": {"bpm": 140}}
+{"id": "melody-voice", "prompt": "Write a LOOM melody voice (not a drum) playing four notes.", "check": "has_pitched_voice", "params": {}}
+{"id": "silence", "prompt": "Write a LOOM pattern where the kick plays nothing at all, a fully silent bar.", "check": "event_count_for_voice", "params": {"voice": "kick", "max_count": 0}}
+{"id": "euclidean-kick", "prompt": "Write a LOOM kick pattern using a euclidean rhythm with 3 hits distributed across 8 steps.", "check": "event_count_for_voice", "params": {"voice": "kick", "min_count": 2, "max_count": 4}}
+{"id": "three-voices", "prompt": "Write a LOOM pattern with kick, snare and hi-hat, all playing something.", "check": "voice_count", "params": {"min_voices": 3}}

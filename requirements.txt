@@ -1,0 +1,9 @@
+anthropic>=0.40
+chromadb>=0.5
+ollama>=0.4
+rank-bm25>=0.2
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.9
+langfuse>=2.53
+pytest>=8.3

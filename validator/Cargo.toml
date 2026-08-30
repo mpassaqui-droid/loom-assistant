@@ -1,0 +1,9 @@
+[package]
+name = "loom-validate"
+version = "0.1.0"
+edition = "2021"
+description = "Read-only oracle for loom-assistant: parses LOOM source with the real loom-core engine and reports the actual scheduled events as JSON. Never modifies loom-core itself."
+
+[dependencies]
+loom-core = { path = "/Users/munaysiwarsylvepassaquiampuero/Dev/loom/loom-core" }
+serde_json = "1"
