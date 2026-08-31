@@ -71,6 +71,13 @@ python3 -m evals.run --runtime api --provider anthropic
 uvicorn api.main:app --reload                # or serve it (BYOK per request, see below)
 ```
 
+## Deploy
+
+`render.yaml` is a ready Render Blueprint (Docker, free plan, health check on
+`/health`). On [render.com](https://render.com): New → Blueprint → connect
+this repo → Apply. No environment variables are required (BYOK per request);
+Langfuse keys are optional if you want tracing.
+
 ## Deployment note
 
 Embeddings run in-process via `fastembed` (ONNX, no PyTorch, ~130MB model) —

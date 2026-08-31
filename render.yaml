@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: loom-assistant
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      # Optional: only for tracing/latency/cost dashboards. The demo works
+      # without them. Never set ANTHROPIC_API_KEY/OPENAI_API_KEY/
+      # GOOGLE_API_KEY here — those are bring-your-own-key, per request,
+      # never held by the host (see SECURITY.md).
+      - key: LANGFUSE_PUBLIC_KEY
+        sync: false
+      - key: LANGFUSE_SECRET_KEY
+        sync: false
