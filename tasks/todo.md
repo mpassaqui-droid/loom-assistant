@@ -38,18 +38,24 @@
 ## ~~Fait~~ (lignes fausses retirées le 31/08 : déjà pushé sur GitHub public ET intégré au CV, voir
 commits `e31f15b` du repo CV et l'historique de ce repo)
 
-## Audit du 31/08 — ce qui manque vraiment (vérifié par grep, pas supposé)
-- [ ] **Étendre le golden set (8→~20-30 exemples) AVANT tout autre changement** — doctrine : le
-      golden set grandit avant le tuning, pas après
-- [ ] **Langfuse pas câblé** : `grep -rn langfuse core/ api/ evals/` = zéro résultat. C'est un nom
-      dans `requirements.txt`, rien de plus. À intégrer pour de vrai si on veut pouvoir dire
-      "évaluation/observabilité nommée" honnêtement
-- [ ] **Aucun suivi de coût** : seule la latence est mesurée (`evals/run.py`). Ajouter un calcul à
-      partir des tokens input/output renvoyés par chaque provider
-- [ ] **Auto-correction jamais vérifiée** : le runtime `claude -p` ne compte pas les tours (`turns:
-      None`), donc impossible de savoir si la boucle "corriger" s'est déjà déclenchée une seule
-      fois sur les 8/8. Tester avec `core.agent.LoomAgent` (qui lui compte les tours) et une vraie
-      clé, idéalement sur un exemple volontairement piégeux
+## Fait (audit du 31/08, corrigé le jour même)
+- [x] **Golden set étendu 8→21 exemples**, + 2 nouvelles fonctions de check (`exact_phases`,
+      `voice_has_verb`) — 17/17 tests unitaires contre l'oracle réel. Lancé en vrai via `claude -p` :
+      **21/21 (100%)**, latence p50=27.6s / p95=104.9s (toujours gonflée par le runtime CLI, pas
+      représentative de l'API en prod)
+- [x] **Langfuse câblé pour de vrai** dans `core/agent.py` (span par requête + generation par tour,
+      usage_details/cost_details), actif seulement si `LANGFUSE_PUBLIC_KEY`/`SECRET_KEY` sont
+      définies — plus un nom vide dans requirements.txt
+- [x] **Coût suivi** : `core/providers.py::estimate_cost_usd()`, tarifs $/M tokens par provider,
+      retourné dans chaque réponse (`cost_usd`, `input_tokens`, `output_tokens`), affiché dans
+      `evals/run.py`
+- [x] **Auto-correction vérifiée avec preuve concrète** : prompt piège exprès ("snare 6 hits sur 13,
+      euclidien") lancé avec `--output-format stream-json --verbose`, transcript complet analysé →
+      **3 appels réels au validateur** dans une seule réponse (le modèle a testé le motif, testé un
+      motif invalide exprès pour vérifier les limites du validateur, puis confirmé en comptant lui-même
+      les événements dans le JSON). La boucle tourne vraiment, pas juste en théorie.
+
+## Reste à faire (Munay)
 - [ ] Tester les adaptateurs OpenAI et Google (`core/providers.py`) avec de vraies clés — écrits
       selon la doc officielle, jamais exécutés
 - [ ] Après tout changement de `loom-core` : relancer `scripts/build_validator.sh` avant de pousser

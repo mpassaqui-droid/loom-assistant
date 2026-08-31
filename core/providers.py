@@ -58,10 +58,27 @@ class ToolCall:
 class ModelTurn:
     text: str
     tool_calls: list[ToolCall] = field(default_factory=list)
+    input_tokens: int = 0
+    output_tokens: int = 0
 
     @property
     def is_final(self) -> bool:
         return not self.tool_calls
+
+
+# $ per million tokens, approximate public list prices (checked against each
+# provider's pricing page at the time of writing — not live-fetched, so this
+# drifts if prices change; good enough for a demo cost estimate, not a bill).
+PRICING_PER_MTOK = {
+    "anthropic": {"input": 3.00, "output": 15.00},   # claude-sonnet-4-5
+    "openai": {"input": 2.00, "output": 8.00},        # gpt-4.1
+    "google": {"input": 0.30, "output": 2.50},        # gemini-2.5-flash
+}
+
+
+def estimate_cost_usd(provider: str, input_tokens: int, output_tokens: int) -> float:
+    rates = PRICING_PER_MTOK[provider]
+    return (input_tokens * rates["input"] + output_tokens * rates["output"]) / 1_000_000
 
 
 class Conversation:
@@ -145,7 +162,13 @@ def _call_anthropic(api_key: str, system: str, conversation: Conversation):
     )
     text = "".join(b.text for b in response.content if b.type == "text")
     calls = [ToolCall(id=b.id, name=b.name, input=b.input) for b in response.content if b.type == "tool_use"]
-    return ModelTurn(text=text, tool_calls=calls), response
+    return (
+        ModelTurn(
+            text=text, tool_calls=calls,
+            input_tokens=response.usage.input_tokens, output_tokens=response.usage.output_tokens,
+        ),
+        response,
+    )
 
 
 def _call_openai(api_key: str, system: str, conversation: Conversation):
@@ -163,7 +186,13 @@ def _call_openai(api_key: str, system: str, conversation: Conversation):
         ToolCall(id=tc.id, name=tc.function.name, input=json.loads(tc.function.arguments))
         for tc in (message.tool_calls or [])
     ]
-    return ModelTurn(text=message.content or "", tool_calls=calls), response
+    return (
+        ModelTurn(
+            text=message.content or "", tool_calls=calls,
+            input_tokens=response.usage.prompt_tokens, output_tokens=response.usage.completion_tokens,
+        ),
+        response,
+    )
 
 
 def _call_google(api_key: str, system: str, conversation: Conversation):
@@ -187,4 +216,11 @@ def _call_google(api_key: str, system: str, conversation: Conversation):
         for p in parts
         if getattr(p, "function_call", None)
     ]
-    return ModelTurn(text=text, tool_calls=calls), response
+    usage = response.usage_metadata
+    return (
+        ModelTurn(
+            text=text, tool_calls=calls,
+            input_tokens=usage.prompt_token_count or 0, output_tokens=usage.candidates_token_count or 0,
+        ),
+        response,
+    )

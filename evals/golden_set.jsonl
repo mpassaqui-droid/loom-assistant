@@ -6,3 +6,16 @@
 {"id": "silence", "prompt": "Write a LOOM pattern where the kick plays nothing at all, a fully silent bar.", "check": "event_count_for_voice", "params": {"voice": "kick", "max_count": 0}}
 {"id": "euclidean-kick", "prompt": "Write a LOOM kick pattern using a euclidean rhythm with 3 hits distributed across 8 steps.", "check": "event_count_for_voice", "params": {"voice": "kick", "min_count": 2, "max_count": 4}}
 {"id": "three-voices", "prompt": "Write a LOOM pattern with kick, snare and hi-hat, all playing something.", "check": "voice_count", "params": {"min_voices": 3}}
+{"id": "kick-beat-1-only", "prompt": "Write a LOOM pattern where the kick hits ONLY on beat 1 of a 4-beat bar, silent everywhere else.", "check": "exact_phases", "params": {"voice": "kick", "phases": [0.0]}}
+{"id": "reversed-hat", "prompt": "Write a LOOM hi-hat pattern and apply the rev verb to reverse it.", "check": "voice_has_verb", "params": {"voice": "hat", "verb_substring": "rev"}}
+{"id": "fast-verb", "prompt": "Write a LOOM hi-hat pattern and make it play twice as fast using the fast verb.", "check": "voice_has_verb", "params": {"voice": "hat", "verb_substring": "fast"}}
+{"id": "slow-verb", "prompt": "Write a LOOM melody voice and slow it down with the slow verb.", "check": "voice_has_verb", "params": {"voice": "lead", "verb_substring": "slow"}}
+{"id": "tempo-90-ballad", "prompt": "Write a slow LOOM ballad pattern at 90 BPM with a simple kick.", "check": "bpm_equals", "params": {"bpm": 90}}
+{"id": "tempo-174-dnb", "prompt": "Write a fast drum and bass LOOM pattern at 174 BPM.", "check": "bpm_equals", "params": {"bpm": 174}}
+{"id": "four-voices", "prompt": "Write a full LOOM drum kit pattern: kick, snare, hi-hat and clap, each playing something.", "check": "voice_count", "params": {"min_voices": 4}}
+{"id": "euclidean-9-16", "prompt": "Write a LOOM hi-hat pattern using a euclidean rhythm distributing 9 hits across 16 steps.", "check": "event_count_for_voice", "params": {"voice": "hat", "min_count": 7, "max_count": 11}}
+{"id": "silent-snare", "prompt": "Write a LOOM pattern with a kick playing normally and a snare voice that is completely silent.", "check": "event_count_for_voice", "params": {"voice": "snare", "max_count": 0}}
+{"id": "chord-pad", "prompt": "Write a LOOM pad voice playing a sustained chord, not a drum.", "check": "has_pitched_voice", "params": {}}
+{"id": "bass-and-drums", "prompt": "Write a LOOM pattern with a kick, a snare, and a melodic bass line.", "check": "has_pitched_voice", "params": {}}
+{"id": "sparse-kick", "prompt": "Write a LOOM kick pattern that hits only twice in a 16-step bar, very sparse and minimal.", "check": "event_count_for_voice", "params": {"voice": "kick", "min_count": 1, "max_count": 3}}
+{"id": "dense-hat-16", "prompt": "Write a LOOM hi-hat pattern that hits on all 16 sixteenth notes of the bar, completely dense.", "check": "event_count_for_voice", "params": {"voice": "hat", "min_count": 14}}

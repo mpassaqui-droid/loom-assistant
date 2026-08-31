@@ -58,19 +58,22 @@ def main() -> None:
 
     results = []
     latencies = []
+    total_cost = 0.0
     for ex in examples:
         start = time.monotonic()
         outcome = agent.ask(ex["prompt"])
         elapsed = time.monotonic() - start
         latencies.append(elapsed)
+        total_cost += outcome.get("cost_usd") or 0.0
 
         report = outcome.get("last_validation") or {}
         check_fn = CHECKS[ex["check"]]
         passed = "error" not in report and check_fn(report, ex["params"])
 
         turns_label = f"{outcome['turns']} turns" if outcome.get("turns") is not None else "n/a turns"
+        cost_label = f"${outcome['cost_usd']:.5f}" if outcome.get("cost_usd") is not None else "n/a cost"
         results.append({"id": ex["id"], "passed": passed, "turns": outcome.get("turns"), "latency_s": round(elapsed, 2)})
-        print(f"{'PASS' if passed else 'FAIL'}  {ex['id']:20s}  {turns_label}  {elapsed:.2f}s")
+        print(f"{'PASS' if passed else 'FAIL'}  {ex['id']:20s}  {turns_label}  {elapsed:.2f}s  {cost_label}")
 
     n = len(results)
     n_pass = sum(1 for r in results if r["passed"])
@@ -80,6 +83,7 @@ def main() -> None:
     print()
     print(f"Semantic pass rate: {n_pass}/{n} ({100 * n_pass / n:.0f}%)")
     print(f"Latency: p50={p50:.2f}s  p95={p95:.2f}s")
+    print(f"Total cost: ${total_cost:.5f} (n/a if --runtime cli — claude -p doesn't expose token usage)")
 
     sys.exit(0 if n_pass == n else 1)
 

@@ -40,6 +40,9 @@ class AskResponse(BaseModel):
     turns: int
     validated: bool
     last_validation: dict | None
+    cost_usd: float
+    input_tokens: int
+    output_tokens: int
 
 
 def _check_rate_limit(client_id: str) -> None:

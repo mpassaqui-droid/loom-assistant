@@ -38,6 +38,10 @@ def validate(code: str) -> dict:
         ("lead: c4 e4 g4 c5", "has_pitched_voice", {}, True),
         ("kick: x . x .", "has_pitched_voice", {}, False),
         ("this is garbage not loom at all", "voice_count", {"min_voices": 1}, False),
+        ("kick: x . . .", "exact_phases", {"voice": "kick", "phases": [0.0]}, True),
+        ("kick: x . x .", "exact_phases", {"voice": "kick", "phases": [0.0]}, False),
+        ("hat: x x x x | rev", "voice_has_verb", {"voice": "hat", "verb_substring": "rev"}, True),
+        ("hat: x x x x | fast 2", "voice_has_verb", {"voice": "hat", "verb_substring": "rev"}, False),
     ],
 )
 def test_check_against_real_oracle(code, check_name, params, expected):

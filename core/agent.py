@@ -19,14 +19,31 @@ single-shot generate-and-hope. Two tools:
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
-from core.providers import Conversation, call_model
+from core.providers import Conversation, call_model, estimate_cost_usd
 from core.rag import HybridRetriever
 
 VALIDATOR_BIN = Path(__file__).parent.parent / "validator" / "target" / "release" / "loom-validate"
 MAX_TURNS = 6
+
+# Langfuse tracing is optional: only active if both keys are set (see
+# render.yaml — they're not required to run the demo). This is what makes
+# "observability" a real, wired-in thing rather than just a name in
+# requirements.txt (audited and found missing on 31/08/2026, see
+# tasks/lessons.md).
+_LANGFUSE_ENABLED = bool(os.environ.get("LANGFUSE_PUBLIC_KEY") and os.environ.get("LANGFUSE_SECRET_KEY"))
+_langfuse_client = None
+
+
+def _get_langfuse():
+    global _langfuse_client
+    if _langfuse_client is None and _LANGFUSE_ENABLED:
+        from langfuse import Langfuse
+        _langfuse_client = Langfuse()
+    return _langfuse_client
 
 SYSTEM_PROMPT = """You are LOOM Assistant, an expert in LOOM, a minimal live-coding music \
 language (one voice per line, `x`/`.` for drums, note names for melody, verbs like `rev`/\
@@ -85,20 +102,53 @@ class LoomAgent:
         return f"unknown tool: {name}"
 
     def ask(self, question: str) -> dict:
-        """Returns {"answer": str, "turns": int, "validated": bool, "last_validation": dict|None}."""
+        """Returns {"answer", "turns", "validated", "last_validation",
+        "cost_usd", "input_tokens", "output_tokens"}."""
+        langfuse = _get_langfuse()
+        trace_ctx = (
+            langfuse.start_as_current_observation(name="loom-assistant-ask", as_type="span", input=question)
+            if langfuse else None
+        )
+        if trace_ctx:
+            trace_ctx.__enter__()
+        try:
+            return self._ask_inner(question, langfuse)
+        finally:
+            if trace_ctx:
+                trace_ctx.__exit__(None, None, None)
+                langfuse.flush()
+
+    def _ask_inner(self, question: str, langfuse) -> dict:
         conversation = Conversation(self.provider)
         conversation.add_user(question)
         last_validation = None
+        total_input_tokens = 0
+        total_output_tokens = 0
 
         for turn in range(MAX_TURNS):
             model_turn, raw = call_model(self.provider, self.api_key, SYSTEM_PROMPT, conversation)
+            total_input_tokens += model_turn.input_tokens
+            total_output_tokens += model_turn.output_tokens
+            turn_cost = estimate_cost_usd(self.provider, model_turn.input_tokens, model_turn.output_tokens)
+
+            if langfuse:
+                with langfuse.start_as_current_observation(
+                    name=f"turn-{turn + 1}", as_type="generation", model=self.provider,
+                    usage_details={"input": model_turn.input_tokens, "output": model_turn.output_tokens},
+                    cost_details={"total": turn_cost},
+                ) as gen:
+                    gen.update(output=model_turn.text or [c.name for c in model_turn.tool_calls])
 
             if model_turn.is_final:
+                total_cost = estimate_cost_usd(self.provider, total_input_tokens, total_output_tokens)
                 return {
                     "answer": model_turn.text,
                     "turns": turn + 1,
                     "validated": last_validation is not None,
                     "last_validation": last_validation,
+                    "cost_usd": round(total_cost, 6),
+                    "input_tokens": total_input_tokens,
+                    "output_tokens": total_output_tokens,
                 }
 
             conversation.add_assistant_turn(raw)
@@ -114,9 +164,13 @@ class LoomAgent:
                 results.append((call, output))
             conversation.add_tool_results(results)
 
+        total_cost = estimate_cost_usd(self.provider, total_input_tokens, total_output_tokens)
         return {
             "answer": "Ran out of turns without a final answer.",
             "turns": MAX_TURNS,
             "validated": last_validation is not None,
             "last_validation": last_validation,
+            "cost_usd": round(total_cost, 6),
+            "input_tokens": total_input_tokens,
+            "output_tokens": total_output_tokens,
         }
