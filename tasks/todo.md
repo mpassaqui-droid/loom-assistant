@@ -32,9 +32,12 @@
       précompilé (`validator/prebuilt/loom-validate-linux-x86_64`), plus aucune dépendance au
       repo privé pour build/déployer `loom-assistant`
 
+- [x] Déployé sur Render, vérifié depuis l'extérieur : `curl https://loom-assistant.onrender.com/health`
+      → `{"status":"ok"}` (200), `/docs` → 200. Live : https://loom-assistant.onrender.com
+
 ## À faire (Munay)
-- [ ] Confirmer que le redéploiement Render passe avec le nouveau Dockerfile (binaire précompilé,
-      plus de clone git) — pas encore vérifié au moment d'écrire cette ligne
+- [ ] Tester `/ask` avec une vraie clé (Anthropic/OpenAI/Google) depuis l'extérieur
+- [ ] Après tout changement de `loom-core` : relancer `scripts/build_validator.sh` avant de pousser
 - [ ] Après tout changement de `loom-core` : relancer `scripts/build_validator.sh` pour
       régénérer le binaire précompilé avant de pousser
 - [ ] Pour des chiffres de latence représentatifs de prod : `python3 -m evals.run --runtime api
