@@ -26,9 +26,17 @@ tempo — against each golden-set example's stated intent.
 
 ## Stack
 
-Python 3.11, local embeddings via Ollama (`nomic-embed-text`), Chroma for
-vector storage, BM25 (`rank_bm25`) for the sparse side of retrieval, Langfuse
-for tracing/latency/cost, FastAPI, Docker.
+Python 3.11, local embeddings via `fastembed` (ONNX, in-process, no external
+server), Chroma for vector storage, BM25 (`rank_bm25`) for the sparse side of
+retrieval, Langfuse for tracing/latency/cost, FastAPI, Docker.
+
+`loom-core`'s source is private (Munay's own repo, not open source by
+choice). The validator (`validator/`) is cross-compiled locally to a static
+Linux binary and committed as a compiled artifact
+(`validator/prebuilt/loom-validate-linux-x86_64`, see
+`scripts/build_validator.sh`) — so anyone can clone and run this repo without
+needing access to that private source, while the source itself is never
+published.
 
 **Bring your own key, any of the top three providers.** The `/ask` endpoint
 takes `{"question", "provider": "anthropic"|"openai"|"google", "api_key"}` —
@@ -58,8 +66,13 @@ not claimed as verified.
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+
+# Local dev, on a machine with access to the private loom-core source:
 cd validator && cargo build --release && cd ..
-python3 -m core.rag                          # build the retrieval index (needs Ollama running)
+# Anyone else (no access to that private repo): use the committed binary directly,
+# nothing to build — see validator/prebuilt/loom-validate-linux-x86_64.
+
+python3 -m core.rag                          # build the retrieval index
 
 # Option A: no API key, free, local only (uses your Claude Code subscription)
 python3 -m evals.run --runtime cli

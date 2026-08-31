@@ -1,20 +1,9 @@
-# Stage 1: compile the validator binary. loom-core's source is fetched
-# straight from its own public repo at build time (a local script vendors it
-# for local dev — see scripts/vendor_loom_core.sh — but a Render build has no
-# access to Munay's filesystem, and loom-core-src/ is gitignored on purpose:
-# it's a build artifact, not something to duplicate into this repo's git
-# history). The loom repo itself is never modified, only cloned read-only.
-FROM rust:1.82-slim AS validator-build
-RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-WORKDIR /build
-RUN git clone --depth 1 https://github.com/mpassaqui-droid/loom.git /build/loom-src
-RUN mkdir -p loom-core-src && cp -R /build/loom-src/loom-core/Cargo.toml /build/loom-src/loom-core/src loom-core-src/
-COPY validator/ validator/
-RUN sed -i 's#path = "/Users/[^"]*"#path = "../loom-core-src"#' validator/Cargo.toml \
-    && cd validator && cargo build --release
-
-# Stage 2: the actual app image.
+# loom-core's source lives in a PRIVATE repo (Munay's own decision — see
+# tasks/lessons.md). The validator binary is cross-compiled once locally
+# (scripts/build_validator.sh, x86_64-unknown-linux-musl via a musl cross
+# toolchain) and committed as validator/prebuilt/loom-validate-linux-x86_64 —
+# a compiled artifact, never the source. This means anyone can clone and
+# deploy loom-assistant without needing access to the private repo at all.
 FROM python:3.11-slim
 WORKDIR /app
 
@@ -24,7 +13,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY core/ core/
 COPY api/ api/
 COPY evals/ evals/
-COPY --from=validator-build /build/validator/target/release/loom-validate validator/target/release/loom-validate
+COPY validator/prebuilt/loom-validate-linux-x86_64 validator/target/release/loom-validate
+RUN chmod +x validator/target/release/loom-validate
 
 # Embeddings run in-process via fastembed (ONNX, no PyTorch, no external
 # server) — no Ollama, no sidecar, works the same on a free-tier host as

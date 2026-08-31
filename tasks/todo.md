@@ -25,11 +25,20 @@
       démo apporte sa clé, jamais stockée/loggée. Seul Anthropic testé en vrai (8/8 golden set via
       `claude -p`) ; OpenAI/Google écrits selon la doc officielle, PAS testés (pas de clé dispo)
 
+## Fait (suite, même session) — binaire précompilé, plus de dépendance au repo privé
+- [x] Découvert : `loom` (le vrai code) est PRIVÉ (choix de Munay, pas un souci de sécurité) —
+      le Dockerfile qui le clonait a cassé sur Render (auth demandée). Corrigé : validateur
+      cross-compilé en local (toolchain musl x86_64-unknown-linux-musl) et committé comme binaire
+      précompilé (`validator/prebuilt/loom-validate-linux-x86_64`), plus aucune dépendance au
+      repo privé pour build/déployer `loom-assistant`
+
 ## À faire (Munay)
-- [ ] Pour la démo publique déployée (Phase 6) : lancer `python3 -m evals.run --runtime api
-      --provider anthropic` (ou openai/google) avec une vraie clé pour des chiffres de latence
-      représentatifs de prod
-- [ ] Décider : Render ou Railway pour le déploiement (plus de blocage Ollama, choix libre maintenant)
+- [ ] Confirmer que le redéploiement Render passe avec le nouveau Dockerfile (binaire précompilé,
+      plus de clone git) — pas encore vérifié au moment d'écrire cette ligne
+- [ ] Après tout changement de `loom-core` : relancer `scripts/build_validator.sh` pour
+      régénérer le binaire précompilé avant de pousser
+- [ ] Pour des chiffres de latence représentatifs de prod : `python3 -m evals.run --runtime api
+      --provider anthropic` (ou openai/google) avec une vraie clé
 - [ ] Étendre le golden set au-delà de 8 exemples avant tout tuning (doctrine : le golden set
       grandit AVANT le changement)
 - [ ] git push vers un nouveau repo GitHub public `loom-assistant`

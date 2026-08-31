@@ -1,5 +1,11 @@
 # Security & data
 
+- `loom-core`'s source is private by Munay's own choice, not for security
+  reasons — see `tasks/lessons.md`. Only a compiled binary
+  (`validator/prebuilt/loom-validate-linux-x86_64`) is committed here, never
+  the source. This repo is fully buildable and deployable by anyone without
+  access to that private repo.
+
 - Data used: only LOOM's own public docs and example patterns (`~/Dev/loom`,
   ingested read-only). No user data is stored — questions are not logged
   anywhere except in Langfuse traces (latency/cost/debugging), which hold no
