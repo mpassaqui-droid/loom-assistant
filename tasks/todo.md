@@ -8,9 +8,18 @@
 - [x] API FastAPI (`/ask`, `/health`), rate limit basique
 - [x] Dockerfile + docker-compose.yml (avec sidecar Ollama)
 
-## À faire (Munay, avec une vraie clé API)
-- [ ] Lancer `python3 -m evals.run` avec `ANTHROPIC_API_KEY` réel, rapporter le vrai taux de
-      réussite sémantique (actuellement ZÉRO chiffre réel côté agent, seulement côté validateur/tests)
+## Fait (suite, même session) — débloqué via `claude -p`
+- [x] `core/agent_cli.py` : même interface que `core.agent.LoomAgent`, mais via `claude -p
+      --allowedTools Bash` (abonnement Max, zéro clé API) — pour tester en local seulement,
+      jamais pour la démo publique déployée (une session perso n'a pas vocation à servir du
+      trafic public, cf. docstring du fichier)
+- [x] Golden set (8 exemples) lancé pour de vrai via ce runtime : **8/8 (100%)**, latence
+      p50=17.6s / p95=27.2s — latence gonflée par le démarrage d'une session Claude Code à
+      chaque appel (pas représentative de l'API en prod, qui répondrait en 2-5s)
+
+## À faire (Munay)
+- [ ] Pour la démo publique déployée (Phase 6) : lancer `python3 -m evals.run --runtime api`
+      avec une vraie `ANTHROPIC_API_KEY` pour avoir des chiffres de latence représentatifs de prod
 - [ ] Vérifier que le retriever tourne bien avec Ollama local (`nomic-embed-text` déjà tiré)
 - [ ] Décider : déploiement Render/Railway, et si Ollama tient sur le tier gratuit ou s'il faut
       basculer `core/rag.py::_embed` sur une API d'embeddings hébergée

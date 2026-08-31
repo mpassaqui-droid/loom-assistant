@@ -1,18 +1,25 @@
-"""Run the full golden set through the real agent and report real numbers.
+"""Run the full golden set through a real agent and report real numbers.
 
-Never prints "it works" without running it. Requires ANTHROPIC_API_KEY set —
-this calls the live agent (core.agent.LoomAgent), not a stand-in.
+Never prints "it works" without running it.
+
+Two runtimes:
+- --runtime api (default when ANTHROPIC_API_KEY is set): core.agent.LoomAgent,
+  the real deployed path.
+- --runtime cli: core.agent_cli.LoomAgentCLI, via `claude -p` on the local
+  Claude Code subscription — no API key needed, for local dev only (see
+  core/agent_cli.py for why this isn't used for the deployed demo).
 """
 
 from __future__ import annotations
 
+import argparse
 import json
+import os
 import statistics
 import sys
 import time
 from pathlib import Path
 
-from core.agent import LoomAgent
 from evals.checks import CHECKS
 
 GOLDEN_SET = Path(__file__).parent / "golden_set.jsonl"
@@ -23,8 +30,18 @@ def load_golden_set() -> list[dict]:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--runtime", choices=["api", "cli"], default="api" if os.environ.get("ANTHROPIC_API_KEY") else "cli")
+    args = parser.parse_args()
+
+    if args.runtime == "cli":
+        from core.agent_cli import LoomAgentCLI
+        agent = LoomAgentCLI()
+    else:
+        from core.agent import LoomAgent
+        agent = LoomAgent()
+
     examples = load_golden_set()
-    agent = LoomAgent()
 
     results = []
     latencies = []
@@ -38,8 +55,9 @@ def main() -> None:
         check_fn = CHECKS[ex["check"]]
         passed = "error" not in report and check_fn(report, ex["params"])
 
-        results.append({"id": ex["id"], "passed": passed, "turns": outcome["turns"], "latency_s": round(elapsed, 2)})
-        print(f"{'PASS' if passed else 'FAIL'}  {ex['id']:20s}  {outcome['turns']} turns  {elapsed:.2f}s")
+        turns_label = f"{outcome['turns']} turns" if outcome.get("turns") is not None else "n/a turns"
+        results.append({"id": ex["id"], "passed": passed, "turns": outcome.get("turns"), "latency_s": round(elapsed, 2)})
+        print(f"{'PASS' if passed else 'FAIL'}  {ex['id']:20s}  {turns_label}  {elapsed:.2f}s")
 
     n = len(results)
     n_pass = sum(1 for r in results if r["passed"])
