@@ -1,10 +1,16 @@
-# Stage 1: compile the validator binary. loom-core itself is vendored in via
-# a build-context copy (see .dockerignore) — the loom repo is not touched,
-# just read from at build time, same as at dev time.
+# Stage 1: compile the validator binary. loom-core's source is fetched
+# straight from its own public repo at build time (a local script vendors it
+# for local dev — see scripts/vendor_loom_core.sh — but a Render build has no
+# access to Munay's filesystem, and loom-core-src/ is gitignored on purpose:
+# it's a build artifact, not something to duplicate into this repo's git
+# history). The loom repo itself is never modified, only cloned read-only.
 FROM rust:1.82-slim AS validator-build
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
+RUN git clone --depth 1 https://github.com/mpassaqui-droid/loom.git /build/loom-src
+RUN mkdir -p loom-core-src && cp -R /build/loom-src/loom-core/Cargo.toml /build/loom-src/loom-core/src loom-core-src/
 COPY validator/ validator/
-COPY loom-core-src/ loom-core-src/
 RUN sed -i 's#path = "/Users/[^"]*"#path = "../loom-core-src"#' validator/Cargo.toml \
     && cd validator && cargo build --release
 
