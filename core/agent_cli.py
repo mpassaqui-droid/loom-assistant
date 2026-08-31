@@ -51,11 +51,19 @@ def _extract_last_json_block(text: str) -> dict | None:
 
 
 class LoomAgentCLI:
+    def __init__(self, model: str | None = None) -> None:
+        # Alias (e.g. "sonnet", "opus", "fable") or a full model name
+        # ("claude-sonnet-4-5-20250929"). None = Claude Code's own default.
+        self.model = model
+
     def ask(self, question: str) -> dict:
         prompt = PROMPT_TEMPLATE.format(question=question)
+        cmd = ["claude", "-p", "--allowedTools", "Bash"]
+        if self.model:
+            cmd += ["--model", self.model]
         start = time.monotonic()
         result = subprocess.run(
-            ["claude", "-p", "--allowedTools", "Bash"],
+            cmd,
             input=prompt,
             capture_output=True,
             text=True,

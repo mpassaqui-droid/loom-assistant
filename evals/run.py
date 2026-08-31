@@ -40,11 +40,12 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--runtime", choices=["api", "cli"], default="cli")
     parser.add_argument("--provider", choices=list(PROVIDER_ENV_VAR), default="anthropic")
+    parser.add_argument("--model", default=None, help="cli runtime only: e.g. sonnet, opus, fable")
     args = parser.parse_args()
 
     if args.runtime == "cli":
         from core.agent_cli import LoomAgentCLI
-        agent = LoomAgentCLI()
+        agent = LoomAgentCLI(model=args.model)
     else:
         from core.agent import LoomAgent
         env_var = PROVIDER_ENV_VAR[args.provider]

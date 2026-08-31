@@ -75,7 +75,9 @@ cd validator && cargo build --release && cd ..
 python3 -m core.rag                          # build the retrieval index
 
 # Option A: no API key, free, local only (uses your Claude Code subscription)
-python3 -m evals.run --runtime cli
+python3 scripts/ask_local.py "a kick and snare pattern at 140 BPM"
+python3 scripts/ask_local.py --model opus "a euclidean kick, 3 hits over 8 steps"
+python3 -m evals.run --runtime cli --model sonnet   # or opus, fable
 
 # Option B: real API key, either provider
 export ANTHROPIC_API_KEY=sk-...              # or OPENAI_API_KEY / GOOGLE_API_KEY
