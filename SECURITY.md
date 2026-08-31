@@ -10,5 +10,11 @@
   achieve even if it slipped through.
 - Rate limiting: 10 requests/minute, shared bucket (no auth layer for this
   demo — add per-key limits before any real multi-user deployment).
-- Secrets: `ANTHROPIC_API_KEY` and Langfuse keys are read from environment
-  variables only, never committed. `.gitignore` excludes `.env*`.
+- Secrets: for local dev, `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`GOOGLE_API_KEY` and Langfuse keys
+  are read from environment variables only, never committed. `.gitignore` excludes `.env*`.
+- **Bring-your-own-key on the deployed demo**: each `/ask` request carries its own `provider` +
+  `api_key` (see `core/providers.py`). That key is used only for the model calls made during that
+  one request, held only in memory for the lifetime of the request, and is never written to disk,
+  logged, or sent to Langfuse (Langfuse traces record the question/answer/latency, not the key).
+  This is also what keeps the demo free to host — Munay's own account is never billed for a
+  visitor's usage.

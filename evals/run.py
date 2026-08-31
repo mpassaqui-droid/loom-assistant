@@ -29,9 +29,17 @@ def load_golden_set() -> list[dict]:
     return [json.loads(line) for line in GOLDEN_SET.read_text().splitlines() if line.strip()]
 
 
+PROVIDER_ENV_VAR = {
+    "anthropic": "ANTHROPIC_API_KEY",
+    "openai": "OPENAI_API_KEY",
+    "google": "GOOGLE_API_KEY",
+}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--runtime", choices=["api", "cli"], default="api" if os.environ.get("ANTHROPIC_API_KEY") else "cli")
+    parser.add_argument("--runtime", choices=["api", "cli"], default="cli")
+    parser.add_argument("--provider", choices=list(PROVIDER_ENV_VAR), default="anthropic")
     args = parser.parse_args()
 
     if args.runtime == "cli":
@@ -39,7 +47,11 @@ def main() -> None:
         agent = LoomAgentCLI()
     else:
         from core.agent import LoomAgent
-        agent = LoomAgent()
+        env_var = PROVIDER_ENV_VAR[args.provider]
+        api_key = os.environ.get(env_var)
+        if not api_key:
+            sys.exit(f"--runtime api --provider {args.provider} needs {env_var} set")
+        agent = LoomAgent(provider=args.provider, api_key=api_key)
 
     examples = load_golden_set()
 
