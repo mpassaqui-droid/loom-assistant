@@ -17,12 +17,19 @@
       p50=17.6s / p95=27.2s — latence gonflée par le démarrage d'une session Claude Code à
       chaque appel (pas représentative de l'API en prod, qui répondrait en 2-5s)
 
+## Fait (suite, même session) — Ollama viré, BYOK multi-provider
+- [x] Embeddings basculés sur `fastembed` (ONNX, in-process, ~130 Mo) — plus de serveur Ollama à
+      héberger, résout le vrai blocage de déploiement gratuit. Réindexé (104 chunks), retriever
+      re-testé sur une vraie requête, 13/13 tests toujours verts.
+- [x] `core/providers.py` : bring-your-own-key, Anthropic/OpenAI/Google — chaque visiteur de la
+      démo apporte sa clé, jamais stockée/loggée. Seul Anthropic testé en vrai (8/8 golden set via
+      `claude -p`) ; OpenAI/Google écrits selon la doc officielle, PAS testés (pas de clé dispo)
+
 ## À faire (Munay)
-- [ ] Pour la démo publique déployée (Phase 6) : lancer `python3 -m evals.run --runtime api`
-      avec une vraie `ANTHROPIC_API_KEY` pour avoir des chiffres de latence représentatifs de prod
-- [ ] Vérifier que le retriever tourne bien avec Ollama local (`nomic-embed-text` déjà tiré)
-- [ ] Décider : déploiement Render/Railway, et si Ollama tient sur le tier gratuit ou s'il faut
-      basculer `core/rag.py::_embed` sur une API d'embeddings hébergée
+- [ ] Pour la démo publique déployée (Phase 6) : lancer `python3 -m evals.run --runtime api
+      --provider anthropic` (ou openai/google) avec une vraie clé pour des chiffres de latence
+      représentatifs de prod
+- [ ] Décider : Render ou Railway pour le déploiement (plus de blocage Ollama, choix libre maintenant)
 - [ ] Étendre le golden set au-delà de 8 exemples avant tout tuning (doctrine : le golden set
       grandit AVANT le changement)
 - [ ] git push vers un nouveau repo GitHub public `loom-assistant`

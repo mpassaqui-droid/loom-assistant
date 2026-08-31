@@ -1,10 +1,13 @@
 """RAG core for loom-assistant.
 
 Ingests LOOM's own documentation and example patterns (read-only, from
-~/Dev/loom), chunks them, embeds them locally via Ollama, and indexes them in
-Chroma. Retrieval is hybrid: dense (Chroma) + sparse (BM25), merged by
-reciprocal rank fusion — the standard approach cited across the 2026 AI
-engineering roadmaps as "hybrid retrieval".
+~/Dev/loom), chunks them, embeds them locally via fastembed (ONNX, no
+PyTorch, no external server — runs in-process, so it works the same in local
+dev and on a small free-tier host, unlike the earlier Ollama-based version
+which needed a separate server), and indexes them in Chroma. Retrieval is
+hybrid: dense (Chroma) + sparse (BM25), merged by reciprocal rank fusion —
+the standard approach cited across the 2026 AI engineering roadmaps as
+"hybrid retrieval".
 
 Never writes to ~/Dev/loom. This module only reads from it.
 """
@@ -16,13 +19,26 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import chromadb
-import ollama
+from fastembed import TextEmbedding
 from rank_bm25 import BM25Okapi
 
 LOOM_REPO = Path.home() / "Dev" / "loom"
-EMBED_MODEL = "nomic-embed-text"
+# fastembed: ONNX runtime, no PyTorch, ~130MB model. Runs in-process, no
+# server to host, no API key — fixes the earlier Ollama problem (a small
+# free-tier host can't reliably run a separate Ollama server). Loaded once,
+# lazily, on first use.
+EMBED_MODEL_NAME = "BAAI/bge-small-en-v1.5"
 CHROMA_DIR = Path(__file__).parent.parent / ".chroma"
 COLLECTION_NAME = "loom_docs"
+
+_embedder: TextEmbedding | None = None
+
+
+def _get_embedder() -> TextEmbedding:
+    global _embedder
+    if _embedder is None:
+        _embedder = TextEmbedding(model_name=EMBED_MODEL_NAME)
+    return _embedder
 
 # The docs worth chunking by section. TUTORIEL.md is the main teaching doc;
 # README/ROADMAP give project-level context. NIGHT_LOG/PLAN-MONDE are working
@@ -77,18 +93,16 @@ def build_corpus() -> list[Chunk]:
     return chunks
 
 
-EMBED_CHAR_LIMIT = 4000  # nomic-embed-text's default Ollama context window is
-# small enough that a few of the longer .loom examples overflow it. The full
-# chunk text is still stored and returned on retrieval; only the *embedding
-# vector* is computed from a truncated prefix, which is still representative
-# for a language this terse (LOOM patterns front-load the interesting part).
+EMBED_CHAR_LIMIT = 2000  # bge-small's context window (512 tokens) is small
+# enough that a few of the longer .loom examples overflow it. The full chunk
+# text is still stored and returned on retrieval; only the *embedding vector*
+# is computed from a truncated prefix, which is still representative for a
+# language this terse (LOOM patterns front-load the interesting part).
 
 
 def _embed(texts: list[str]) -> list[list[float]]:
-    return [
-        ollama.embeddings(model=EMBED_MODEL, prompt=t[:EMBED_CHAR_LIMIT])["embedding"]
-        for t in texts
-    ]
+    vectors = _get_embedder().embed([t[:EMBED_CHAR_LIMIT] for t in texts])
+    return [v.tolist() for v in vectors]
 
 
 def index_corpus(chunks: list[Chunk] | None = None) -> None:
@@ -116,7 +130,7 @@ def _tokenize(text: str) -> list[str]:
 
 
 class HybridRetriever:
-    """Dense (Chroma/Ollama embeddings) + sparse (BM25) retrieval, merged by
+    """Dense (Chroma/fastembed) + sparse (BM25) retrieval, merged by
     reciprocal rank fusion (k=60, the standard constant from the original RRF
     paper). Loads the corpus into memory once at construction time."""
 
@@ -129,7 +143,7 @@ class HybridRetriever:
 
     def retrieve(self, query: str, k: int = 4) -> list[Chunk]:
         # Dense side.
-        q_emb = ollama.embeddings(model=EMBED_MODEL, prompt=query)["embedding"]
+        q_emb = next(_get_embedder().embed([query])).tolist()
         dense = self._collection.query(query_embeddings=[q_emb], n_results=min(20, len(self.chunks)))
         dense_ids = dense["ids"][0]
 

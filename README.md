@@ -73,8 +73,11 @@ uvicorn api.main:app --reload                # or serve it (BYOK per request, se
 
 ## Deployment note
 
-The retriever calls a local Ollama for embeddings. Running Ollama on a small
-hosted instance (Render/Railway free tier) is not guaranteed to work well —
-if the deployed demo needs to swap to a hosted embeddings API instead of
-local Ollama, that's a one-line change in `core/rag.py::_embed`, not a
-redesign.
+Embeddings run in-process via `fastembed` (ONNX, no PyTorch, ~130MB model) —
+no Ollama, no sidecar server, no separate service to keep alive. This was a
+real blocker earlier in the build (a small free-tier host isn't guaranteed
+to run Ollama reliably); it's resolved now, not a workaround. The rest of
+the deployment (Docker image, Render/Railway) is a standard Python
+container: one service, one port, `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/
+`GOOGLE_API_KEY` supplied per-request by visitors (see "Bring your own key"
+above), not by the host.

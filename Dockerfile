@@ -20,10 +20,11 @@ COPY api/ api/
 COPY evals/ evals/
 COPY --from=validator-build /build/validator/target/release/loom-validate validator/target/release/loom-validate
 
-# The retriever needs a live Ollama reachable at OLLAMA_HOST for embeddings.
-# For the demo deployment this points at a small managed Ollama instance or a
-# sidecar container (see docker-compose.yml for local use).
-ENV OLLAMA_HOST=http://localhost:11434
+# Embeddings run in-process via fastembed (ONNX, no PyTorch, no external
+# server) — no Ollama, no sidecar, works the same on a free-tier host as
+# locally. The first run downloads the ~130MB model from Hugging Face; bake
+# it into the image at build time so a cold container doesn't pay for it.
+RUN python3 -c "from fastembed import TextEmbedding; TextEmbedding(model_name='BAAI/bge-small-en-v1.5')"
 
 EXPOSE 8000
 CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
