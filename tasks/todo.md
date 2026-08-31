@@ -35,17 +35,24 @@
 - [x] Déployé sur Render, vérifié depuis l'extérieur : `curl https://loom-assistant.onrender.com/health`
       → `{"status":"ok"}` (200), `/docs` → 200. Live : https://loom-assistant.onrender.com
 
-## À faire (Munay)
-- [ ] Tester `/ask` avec une vraie clé (Anthropic/OpenAI/Google) depuis l'extérieur
+## ~~Fait~~ (lignes fausses retirées le 31/08 : déjà pushé sur GitHub public ET intégré au CV, voir
+commits `e31f15b` du repo CV et l'historique de ce repo)
+
+## Audit du 31/08 — ce qui manque vraiment (vérifié par grep, pas supposé)
+- [ ] **Étendre le golden set (8→~20-30 exemples) AVANT tout autre changement** — doctrine : le
+      golden set grandit avant le tuning, pas après
+- [ ] **Langfuse pas câblé** : `grep -rn langfuse core/ api/ evals/` = zéro résultat. C'est un nom
+      dans `requirements.txt`, rien de plus. À intégrer pour de vrai si on veut pouvoir dire
+      "évaluation/observabilité nommée" honnêtement
+- [ ] **Aucun suivi de coût** : seule la latence est mesurée (`evals/run.py`). Ajouter un calcul à
+      partir des tokens input/output renvoyés par chaque provider
+- [ ] **Auto-correction jamais vérifiée** : le runtime `claude -p` ne compte pas les tours (`turns:
+      None`), donc impossible de savoir si la boucle "corriger" s'est déjà déclenchée une seule
+      fois sur les 8/8. Tester avec `core.agent.LoomAgent` (qui lui compte les tours) et une vraie
+      clé, idéalement sur un exemple volontairement piégeux
+- [ ] Tester les adaptateurs OpenAI et Google (`core/providers.py`) avec de vraies clés — écrits
+      selon la doc officielle, jamais exécutés
 - [ ] Après tout changement de `loom-core` : relancer `scripts/build_validator.sh` avant de pousser
-- [ ] Après tout changement de `loom-core` : relancer `scripts/build_validator.sh` pour
-      régénérer le binaire précompilé avant de pousser
-- [ ] Pour des chiffres de latence représentatifs de prod : `python3 -m evals.run --runtime api
-      --provider anthropic` (ou openai/google) avec une vraie clé
-- [ ] Étendre le golden set au-delà de 8 exemples avant tout tuning (doctrine : le golden set
-      grandit AVANT le changement)
-- [ ] git push vers un nouveau repo GitHub public `loom-assistant`
-- [ ] Intégrer au CV (`project_cv_ameliorations_template_baswe`) une fois les vrais chiffres obtenus
 
 ## Review
 Repo construit de zéro en une session. Tout ce qui ne dépend PAS de l'API Claude est testé avec
